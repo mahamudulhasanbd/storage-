@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DrivePool â Unified Cloud Storage</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #05070f;
+  --surface: #0d1117;
+  --surface2: #161b27;
+  --surface3: #1e2535;
+  --accent: #4f8eff;
+  --accent2: #7c3aed;
+  --accent3: #06d6a0;
+  --danger: #ff4757;
+  --warn: #ffa502;
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --border: rgba(255,255,255,0.07);
+  --glow: rgba(79,142,255,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ââ NOISE TEXTURE ââ */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:9999; opacity:.4;
+}
+
+/* ââââââââââââââââ LOGIN PAGE ââââââââââââââââ */
+#loginPage {
+  display:flex; align-items:center; justify-content:center;
+  min-height:100vh; position:relative;
+}
+
+.login-bg {
+  position:fixed; inset:0; overflow:hidden; z-index:0;
+}
+
+.orb {
+  position:absolute; border-radius:50%;
+  filter: blur(80px); opacity:.35;
+  animation: drift 12s ease-in-out infinite alternate;
+}
+.orb1 { width:600px; height:600px; background:radial-gradient(circle, #4f8eff, transparent); top:-200px; left:-200px; animation-delay:0s; }
+.orb2 { width:500px; height:500px; background:radial-gradient(circle, #7c3aed, transparent); bottom:-150px; right:-150px; animation-delay:-4s; }
+.orb3 { width:300px; height:300px; background:radial-gradient(circle, #06d6a0, transparent); top:50%; left:50%; transform:translate(-50%,-50%); animation-delay:-8s; }
+
+@keyframes drift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(40px, 30px) scale(1.1); }
+}
+
+.login-card {
+  position:relative; z-index:1;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 52px 44px;
+  width: min(440px, 92vw);
+  box-shadow: 0 0 80px rgba(79,142,255,0.1), 0 32px 64px rgba(0,0,0,0.6);
+  animation: cardIn .6s cubic-bezier(.16,1,.3,1) both;
+}
+
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(32px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.login-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 2rem; font-weight:800; letter-spacing:-1px;
+  background: linear-gradient(135deg, #4f8eff, #7c3aed);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+
+.login-sub { color: var(--muted); font-size:.875rem; margin-bottom:36px; }
+
+.field-label { font-size:.75rem; font-weight:600; letter-spacing:.08em; color:var(--muted); text-transform:uppercase; margin-bottom:8px; display:block; }
+
+.field-wrap { position:relative; margin-bottom:20px; }
+
+.field-wrap svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--muted); pointer-events:none; }
+
+.field-wrap input {
+  width:100%; padding:13px 14px 13px 42px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius:12px; color:var(--text);
+  font-family: inherit; font-size:.9rem;
+  transition: border-color .2s, box-shadow .2s;
+  outline:none;
+}
+
+.field-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,142,255,.12);
+}
+
+.toggle-pw { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--muted); }
+
+.btn-login {
+  width:100%; padding:14px;
+  background: linear-gradient(135deg, #4f8eff, #7c3aed);
+  border:none; border-radius:12px; color:#fff;
+  font-family:inherit; font-size:.95rem; font-weight:600;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition: transform .15s, box-shadow .15s;
+  margin-top:8px;
+}
+
+.btn-login:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(79,142,255,.35); }
+.btn-login:active { transform:translateY(0); }
+
+.btn-login .ripple {
+  position:absolute; border-radius:50%;
+  background:rgba(255,255,255,.3); transform:scale(0);
+  animation:ripple .5s linear;
+}
+@keyframes ripple { to { transform:scale(4); opacity:0; } }
+
+.login-err { color:var(--danger); font-size:.82rem; margin-top:10px; display:none; text-align:center; }
+
+/* ââââââââââââââââ DASHBOARD ââââââââââââââââ */
+#dashboard { display:none; }
+
+/* SIDEBAR */
+.sidebar {
+  position:fixed; top:0; left:0; bottom:0;
+  width:260px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display:flex; flex-direction:column;
+  z-index:100; transition: transform .3s cubic-bezier(.16,1,.3,1);
+}
+
+.sidebar-head {
+  padding:24px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo {
+  font-family:'Syne', sans-serif; font-size:1.4rem; font-weight:800;
+  background:linear-gradient(135deg,#4f8eff,#7c3aed);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  letter-spacing:-0.5px;
+}
+.sidebar-tagline { font-size:.7rem; color:var(--muted); margin-top:2px; }
+
+/* storage meter */
+.storage-meter { padding:16px 20px; border-bottom:1px solid var(--border); }
+.storage-label { display:flex; justify-content:space-between; font-size:.75rem; color:var(--muted); margin-bottom:8px; }
+.meter-track { height:6px; background:var(--surface3); border-radius:9px; overflow:hidden; }
+.meter-fill { height:100%; border-radius:9px; background:linear-gradient(90deg,#4f8eff,#7c3aed); width:62%; transition:width 1s ease; }
+.storage-accounts { margin-top:10px; }
+.acc-chip { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:.75rem; color:var(--muted); cursor:pointer; }
+.acc-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* nav */
+.sidebar-nav { flex:1; padding:12px 12px; overflow-y:auto; }
+.nav-section { font-size:.65rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:10px 8px 4px; }
+.nav-item {
+  display:flex; align-items:center; gap:12px;
+  padding:9px 12px; border-radius:10px;
+  font-size:.875rem; cursor:pointer; color:var(--muted);
+  transition:all .15s; margin-bottom:2px;
+}
+.nav-item:hover { background:var(--surface2); color:var(--text); }
+.nav-item.active { background:rgba(79,142,255,.12); color:var(--accent); }
+.nav-item svg { width:17px; height:17px; flex-shrink:0; }
+.nav-badge { margin-left:auto; background:var(--accent); color:#fff; font-size:.65rem; padding:2px 6px; border-radius:99px; font-weight:600; }
+
+.sidebar-foot { padding:16px 20px; border-top:1px solid var(--border); }
+.user-chip { display:flex; align-items:center; gap:10px; }
+.avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#4f8eff,#7c3aed); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem; flex-shrink:0; }
+.user-info { flex:1; min-width:0; }
+.user-name { font-size:.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-role { font-size:.65rem; color:var(--muted); }
+.btn-logout { background:none; border:none; cursor:pointer; color:var(--muted); padding:4px; border-radius:6px; transition:color .15s; }
+.btn-logout:hover { color:var(--danger); }
+
+/* MAIN */
+.main { margin-left:260px; min-height:100vh; }
+
+/* TOPBAR */
+.topbar {
+  position:sticky; top:0; z-index:90;
+  background:rgba(5,7,15,.85); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:0 28px; height:64px;
+  display:flex; align-items:center; gap:16px;
+}
+
+.topbar-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; flex:0 0 auto; }
+
+.search-wrap { flex:1; max-width:420px; position:relative; }
+.search-wrap svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; color:var(--muted); }
+.search-wrap input {
+  width:100%; padding:8px 12px 8px 36px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; color:var(--text); font-family:inherit; font-size:.85rem; outline:none;
+  transition:border-color .2s;
+}
+.search-wrap input:focus { border-color:var(--accent); }
+
+.topbar-actions { margin-left:auto; display:flex; gap:8px; }
+
+.btn-icon {
+  width:36px; height:36px; border-radius:10px;
+  background:var(--surface2); border:1px solid var(--border);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:var(--muted); transition:all .15s;
+}
+.btn-icon:hover { background:var(--surface3); color:var(--text); border-color:var(--accent); }
+.btn-icon svg { width:16px; height:16px; }
+
+.btn-primary {
+  display:flex; align-items:center; gap:6px;
+  padding:8px 16px; background:var(--accent);
+  border:none; border-radius:10px; color:#fff;
+  font-family:inherit; font-size:.85rem; font-weight:600;
+  cursor:pointer; transition:all .15s;
+}
+.btn-primary:hover { background:#3d7de8; box-shadow:0 4px 16px rgba(79,142,255,.3); }
+.btn-primary svg { width:15px; height:15px; }
+
+/* CONTENT */
+.content { padding:28px; }
+
+/* STAT CARDS */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+
+.stat-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px; padding:20px;
+  position:relative; overflow:hidden;
+  cursor:default;
+  transition: transform .2s, box-shadow .2s;
+  animation: fadeUp .5s ease both;
+}
+.stat-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,.4); }
+
+.stat-card::after {
+  content:''; position:absolute;
+  width:80px; height:80px; border-radius:50%;
+  top:-20px; right:-20px;
+  filter:blur(24px); opacity:.4;
+}
+.stat-card:nth-child(1)::after { background:#4f8eff; }
+.stat-card:nth-child(2)::after { background:#06d6a0; }
+.stat-card:nth-child(3)::after { background:#ffa502; }
+.stat-card:nth-child(4)::after { background:#7c3aed; }
+
+.stat-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+.stat-icon svg { width:20px; height:20px; }
+.si-blue { background:rgba(79,142,255,.15); color:#4f8eff; }
+.si-green { background:rgba(6,214,160,.15); color:#06d6a0; }
+.si-yellow { background:rgba(255,165,2,.15); color:#ffa502; }
+.si-purple { background:rgba(124,58,237,.15); color:#7c3aed; }
+
+.stat-val { font-family:'Syne',sans-serif; font-size:1.7rem; font-weight:800; line-height:1; }
+.stat-label { font-size:.75rem; color:var(--muted); margin-top:4px; }
+.stat-delta { font-size:.72rem; color:var(--accent3); margin-top:8px; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+
+/* FILE TYPE ROW */
+.file-types-row { display:flex; gap:12px; margin-bottom:28px; flex-wrap:wrap; }
+.type-chip {
+  display:flex; align-items:center; gap:8px; padding:8px 16px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:99px; font-size:.8rem; cursor:pointer;
+  transition:all .15s;
+}
+.type-chip.active, .type-chip:hover { border-color:var(--accent); background:rgba(79,142,255,.1); color:var(--accent); }
+.type-chip svg { width:15px; height:15px; }
+
+/* FILE GRID / LIST */
+.files-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.files-header h3 { font-size:1rem; font-weight:700; flex:1; }
+.view-toggle { display:flex; background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.view-btn { padding:6px 10px; cursor:pointer; color:var(--muted); border:none; background:none; transition:all .15s; }
+.view-btn.active { background:var(--surface3); color:var(--text); }
+.view-btn svg { width:15px; height:15px; display:block; }
+
+.file-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+
+.file-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:16px; cursor:pointer;
+  transition:all .2s; position:relative;
+  animation: fadeUp .4s ease both;
+}
+.file-card:hover { border-color:rgba(79,142,255,.4); transform:translateY(-3px); box-shadow:0 12px 28px rgba(0,0,0,.35); }
+.file-card:hover .file-actions { opacity:1; }
+
+.file-thumb {
+  width:100%; aspect-ratio:1; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:12px; font-size:2.5rem;
+  background:var(--surface2);
+}
+.file-thumb.img-thumb { background-size:cover; background-position:center; }
+
+.file-name { font-size:.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file-meta { font-size:.7rem; color:var(--muted); margin-top:3px; }
+
+.file-actions {
+  position:absolute; top:8px; right:8px;
+  display:flex; gap:4px; opacity:0; transition:opacity .15s;
+}
+.fa-btn { width:28px; height:28px; border-radius:7px; background:rgba(13,17,23,.85); backdrop-filter:blur(8px); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); transition:all .15s; }
+.fa-btn:hover { color:var(--text); border-color:var(--accent); }
+.fa-btn svg { width:13px; height:13px; }
+
+/* LIST VIEW */
+.file-list { display:none; }
+.file-list-item {
+  display:flex; align-items:center; gap:14px;
+  padding:11px 14px; border-radius:12px;
+  transition:background .15s; cursor:pointer;
+  animation: fadeUp .3s ease both;
+}
+.file-list-item:hover { background:var(--surface2); }
+.file-list-item:hover .li-actions { opacity:1; }
+.li-icon { width:38px; height:38px; border-radius:10px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+.li-name { flex:1; font-size:.85rem; font-weight:500; }
+.li-type { width:90px; font-size:.75rem; color:var(--muted); }
+.li-size { width:80px; font-size:.75rem; color:var(--muted); }
+.li-date { width:120px; font-size:.75rem; color:var(--muted); }
+.li-actions { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+
+/* UPLOAD ZONE */
+.upload-zone {
+  border:2px dashed var(--border); border-radius:16px;
+  padding:36px; text-align:center; margin-bottom:28px;
+  cursor:pointer; transition:all .2s;
+  background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(79,142,255,.02) 10px, rgba(79,142,255,.02) 20px);
+}
+.upload-zone:hover, .upload-zone.drag { border-color:var(--accent); background:rgba(79,142,255,.05); }
+.upload-zone svg { width:40px; height:40px; color:var(--accent); margin:0 auto 12px; display:block; }
+.upload-zone h4 { font-size:.95rem; font-weight:600; margin-bottom:6px; }
+.upload-zone p { font-size:.8rem; color:var(--muted); }
+#fileInput { display:none; }
+
+/* PROGRESS BAR */
+.upload-progress { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; display:none; }
+.up-item { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.up-name { flex:1; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.up-track { flex:2; height:4px; background:var(--surface3); border-radius:9px; overflow:hidden; }
+.up-fill { height:100%; background:linear-gradient(90deg,#4f8eff,#06d6a0); border-radius:9px; transition:width .3s; }
+.up-pct { font-size:.75rem; color:var(--muted); width:35px; text-align:right; }
+
+/* CONTEXT MENU */
+.ctx-menu {
+  position:fixed; background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:6px; z-index:9000; display:none;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+  min-width:170px; animation:menuIn .12s ease;
+}
+@keyframes menuIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:none} }
+.ctx-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:.83rem; color:var(--muted); transition:all .12s; }
+.ctx-item:hover { background:var(--surface2); color:var(--text); }
+.ctx-item.danger { color:var(--danger); }
+.ctx-item.danger:hover { background:rgba(255,71,87,.1); }
+.ctx-item svg { width:15px; height:15px; flex-shrink:0; }
+.ctx-sep { height:1px; background:var(--border); margin:4px 0; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px); z-index:8000; display:none; align-items:center; justify-content:center; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px; width:min(420px,90vw); animation:modalIn .25s cubic-bezier(.16,1,.3,1); }
+@keyframes modalIn { from{opacity:0;transform:scale(.93) translateY(12px)} to{opacity:1;transform:none} }
+.modal h3 { font-size:1.1rem; font-weight:700; margin-bottom:18px; }
+.modal input { width:100%; padding:11px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:inherit; font-size:.9rem; outline:none; margin-bottom:16px; }
+.modal input:focus { border-color:var(--accent); }
+.modal-btns { display:flex; gap:10px; justify-content:flex-end; }
+.btn-secondary { padding:9px 18px; background:var(--surface3); border:1px solid var(--border); border-radius:9px; color:var(--text); font-family:inherit; font-size:.85rem; cursor:pointer; transition:all .15s; }
+.btn-secondary:hover { background:var(--surface2); }
+
+/* NOTIFICATION */
+.notif-stack { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.notif { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; font-size:.83rem; display:flex; align-items:center; gap:10px; box-shadow:0 8px 24px rgba(0,0,0,.4); animation:notifIn .3s cubic-bezier(.16,1,.3,1) both; pointer-events:all; }
+@keyframes notifIn { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:none} }
+.notif.out { animation:notifOut .2s ease forwards; }
+@keyframes notifOut { to{opacity:0;transform:translateX(24px)} }
+.notif-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.notif-ok .notif-dot { background:var(--accent3); }
+.notif-err .notif-dot { background:var(--danger); }
+.notif-info .notif-dot { background:var(--accent); }
+
+/* ANIMATED PARTICLES */
+.particles { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+.particle { position:absolute; width:2px; height:2px; background:rgba(79,142,255,.4); border-radius:50%; animation:floatP linear infinite; }
+@keyframes floatP { 0%{transform:translateY(100vh) translateX(0); opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-20px) translateX(30px); opacity:0} }
+
+/* HAMBURGER */
+.hamburger { display:none; width:36px; height:36px; border-radius:9px; background:var(--surface2); border:1px solid var(--border); cursor:pointer; align-items:center; justify-content:center; flex-direction:column; gap:4px; }
+.hamburger span { display:block; width:16px; height:2px; background:var(--text); border-radius:2px; transition:all .2s; }
+
+/* RESPONSIVE */
+@media(max-width:900px) {
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:700px) {
+  .sidebar { transform:translateX(-100%); }
+  .sidebar.open { transform:none; }
+  .main { margin-left:0; }
+  .hamburger { display:flex; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+  .file-grid { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
+  .li-type,.li-size,.li-date { display:none; }
+}
+
+/* Folder breadcrumb */
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:.82rem; color:var(--muted); margin-bottom:18px; flex-wrap:wrap; }
+.bc-item { cursor:pointer; transition:color .15s; }
+.bc-item:hover { color:var(--text); }
+.bc-sep { color:var(--border); }
+.bc-current { color:var(--text); }
+
+/* Connecting accounts panel */
+.drive-accounts { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-bottom:28px; }
+.drive-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px; display:flex; align-items:center; gap:14px; }
+.drive-logo { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+.drive-info { flex:1; min-width:0; }
+.drive-name { font-size:.85rem; font-weight:600; }
+.drive-email { font-size:.7rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.drive-storage { font-size:.72rem; color:var(--accent); margin-top:2px; }
+.drive-status { width:8px; height:8px; border-radius:50%; background:var(--accent3); flex-shrink:0; }
+
+/* ââ SELECTED BAR ââ */
+.sel-bar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface); border:1px solid var(--accent); border-radius:14px; padding:10px 20px; display:flex; align-items:center; gap:16px; z-index:7000; transition:transform .3s cubic-bezier(.16,1,.3,1); box-shadow:0 8px 32px rgba(79,142,255,.2); }
+.sel-bar.show { transform:translateX(-50%) translateY(0); }
+.sel-count { font-size:.85rem; font-weight:600; }
+.sel-actions { display:flex; gap:8px; }
+.sel-btn { display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--muted); font-family:inherit; font-size:.8rem; cursor:pointer; transition:all .15s; }
+.sel-btn:hover { background:var(--surface2); color:var(--text); }
+.sel-btn.red:hover { background:rgba(255,71,87,.15); color:var(--danger); border-color:var(--danger); }
+.sel-btn svg { width:14px; height:14px; }
+
+/* SORT BAR */
+.sort-bar { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.sort-btn { padding:5px 11px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--muted); font-family:inherit; font-size:.75rem; cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:4px; }
+.sort-btn.active { background:rgba(79,142,255,.1); color:var(--accent); border-color:var(--accent); }
+.sort-btn svg { width:12px; height:12px; }
+</style>
+</head>
+<body>
+
+<!-- âââ PARTICLES âââ -->
+<div class="particles" id="particles"></div>
+
+<!-- âââââââââââ LOGIN PAGE âââââââââââ -->
+<div id="loginPage">
+  <div class="login-bg">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">â¬¡ DrivePool</div>
+    <div class="login-sub">Unified Cloud Storage Platform</div>
+
+    <label class="field-label">Username</label>
+    <div class="field-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username" />
+    </div>
+
+    <label class="field-label">Password</label>
+    <div class="field-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      <input type="password" id="loginPass" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" autocomplete="current-password" />
+      <button class="toggle-pw" id="togglePw" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+      </button>
+    </div>
+
+    <button class="btn-login" id="loginBtn">Sign In to DrivePool</button>
+    <div class="login-err" id="loginErr">â  Invalid credentials. Try: admin / drivepool123</div>
+    <div style="margin-top:16px; font-size:.72rem; color:var(--muted); text-align:center;">Default: <b style="color:var(--text)">admin</b> / <b style="color:var(--text)">drivepool123</b></div>
+  </div>
+</div>
+
+<!-- âââââââââââ DASHBOARD âââââââââââ -->
+<div id="dashboard">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-logo">â¬¡ DrivePool</div>
+      <div class="sidebar-tagline">All your drives, one place</div>
+    </div>
+
+    <div class="storage-meter">
+      <div class="storage-label"><span>Total Storage</span><span>187 GB / 300 GB</span></div>
+      <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+      <div class="storage-accounts" id="accList"></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Files</div>
+      <div class="nav-item active" data-view="all" onclick="switchView(this,'all')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        All Files <span class="nav-badge" id="totalBadge">0</span>
+      </div>
+      <div class="nav-item" data-view="images" onclick="switchView(this,'images')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Images
+      </div>
+      <div class="nav-item" data-view="videos" onclick="switchView(this,'videos')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        Videos
+      </div>
+      <div class="nav-item" data-view="documents" onclick="switchView(this,'documents')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Documents
+      </div>
+      <div class="nav-item" data-view="audio" onclick="switchView(this,'audio')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+        Audio
+      </div>
+      <div class="nav-item" data-view="archives" onclick="switchView(this,'archives')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+        Archives
+      </div>
+      <div class="nav-section" style="margin-top:8px">Manage</div>
+      <div class="nav-item" onclick="showDriveAccounts()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        Connected Drives
+      </div>
+      <div class="nav-item" onclick="showTrash()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Trash <span class="nav-badge" id="trashBadge" style="background:var(--danger)">0</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="avatar" id="userAvatar">A</div>
+        <div class="user-info">
+          <div class="user-name" id="userNameDisp">Admin</div>
+          <div class="user-role">Owner</div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()" title="Logout">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title" id="topbarTitle">All Files</div>
+      <div class="search-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" placeholder="Search files, foldersâ¦" id="searchInput" oninput="doSearch()" />
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" title="Sort" onclick="cycleSortMenu()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"/></svg>
+        </button>
+        <button class="btn-icon" title="New Folder" onclick="openNewFolder()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2z"/></svg>
+        </button>
+        <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Upload
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="content" id="contentArea">
+
+      <!-- STATS ROW -->
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card" style="animation-delay:.05s">
+          <div class="stat-icon si-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+          <div class="stat-val" id="sv-total">0</div>
+          <div class="stat-label">Total Files</div>
+          <div class="stat-delta">â All types combined</div>
+        </div>
+        <div class="stat-card" style="animation-delay:.1s">
+          <div class="stat-icon si-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+          <div class="stat-val" id="sv-img">0</div>
+          <div class="stat-label">Images</div>
+          <div class="stat-delta">Auto-sorted â</div>
+        </div>
+        <div class="stat-card" style="animation-delay:.15s">
+          <div class="stat-icon si-yellow"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div>
+          <div class="stat-val" id="sv-vid">0</div>
+          <div class="stat-label">Videos</div>
+          <div class="stat-delta">Auto-sorted â</div>
+        </div>
+        <div class="stat-card" style="animation-delay:.2s">
+          <div class="stat-icon si-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
+          <div class="stat-val" id="sv-doc">0</div>
+          <div class="stat-label">Documents</div>
+          <div class="stat-delta">Auto-sorted â</div>
+        </div>
+      </div>
+
+      <!-- DRIVE ACCOUNTS SECTION (hidden initially) -->
+      <div id="driveAccountsSection" style="display:none; margin-bottom:28px;">
+        <h3 style="margin-bottom:16px; font-size:1rem;">Connected Google Drive Accounts</h3>
+        <div class="drive-accounts" id="driveCards"></div>
+        <button class="btn-primary" onclick="addDriveAccount()" style="width:auto">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Connect New Drive
+        </button>
+      </div>
+
+      <!-- UPLOAD ZONE -->
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        <h4>Drop files here or click to upload</h4>
+        <p>Images, Videos, Documents, Audio, Archives â auto-sorted</p>
+      </div>
+      <input type="file" id="fileInput" multiple onchange="handleFiles(this.files)" />
+
+      <!-- UPLOAD PROGRESS -->
+      <div class="upload-progress" id="uploadProgress">
+        <div id="progressItems"></div>
+      </div>
+
+      <!-- BREADCRUMB -->
+      <div class="breadcrumb" id="breadcrumb">
+        <span class="bc-item" onclick="goRoot()">ð  Home</span>
+        <span class="bc-sep" id="bcSep" style="display:none">âº</span>
+        <span class="bc-current" id="bcCurrent" style="display:none"></span>
+      </div>
+
+      <!-- SORT BAR -->
+      <div class="sort-bar">
+        <span style="font-size:.75rem; color:var(--muted)">Sort:</span>
+        <button class="sort-btn active" id="srt-name" onclick="sortFiles('name',this)">Name <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4'/></svg></button>
+        <button class="sort-btn" id="srt-date" onclick="sortFiles('date',this)">Date</button>
+        <button class="sort-btn" id="srt-size" onclick="sortFiles('size',this)">Size</button>
+        <button class="sort-btn" id="srt-type" onclick="sortFiles('type',this)">Type</button>
+      </div>
+
+      <!-- FILE TYPE CHIPS -->
+      <div class="file-types-row" id="typeChips">
+        <div class="type-chip active" onclick="filterType('all',this)">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>All
+        </div>
+        <div class="type-chip" onclick="filterType('folder',this)">ð Folders</div>
+        <div class="type-chip" onclick="filterType('images',this)">ð¼ Images</div>
+        <div class="type-chip" onclick="filterType('videos',this)">ð¬ Videos</div>
+        <div class="type-chip" onclick="filterType('documents',this)">ð Docs</div>
+        <div class="type-chip" onclick="filterType('audio',this)">ðµ Audio</div>
+        <div class="type-chip" onclick="filterType('archives',this)">ð¦ Archives</div>
+      </div>
+
+      <!-- FILES HEADER -->
+      <div class="files-header">
+        <h3 id="filesTitle">All Files</h3>
+        <div style="color:var(--muted); font-size:.8rem" id="fileCount">0 items</div>
+        <div style="margin-left:auto" class="view-toggle">
+          <button class="view-btn active" id="vbGrid" onclick="setView('grid')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          </button>
+          <button class="view-btn" id="vbList" onclick="setView('list')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- FILE GRID -->
+      <div class="file-grid" id="fileGrid"></div>
+      <!-- FILE LIST -->
+      <div class="file-list" id="fileListView"></div>
+
+      <div id="emptyState" style="display:none; text-align:center; padding:60px 20px; color:var(--muted);">
+        <div style="font-size:3rem; margin-bottom:12px;">ð</div>
+        <div style="font-size:.9rem">No files here yet. Upload something!</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" onclick="ctxAction('download')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Download</div>
+  <div class="ctx-item" onclick="ctxAction('rename')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>Rename</div>
+  <div class="ctx-item" onclick="ctxAction('move')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Move</div>
+  <div class="ctx-item" onclick="ctxAction('copy')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>Copy</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxAction('delete')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Delete</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h3 id="modalTitle">New Folder</h3>
+    <input type="text" id="modalInput" placeholder="Folder nameâ¦" />
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="modalOk" onclick="modalConfirm()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- SELECTION BAR -->
+<div class="sel-bar" id="selBar">
+  <span class="sel-count" id="selCount">0 selected</span>
+  <div class="sel-actions">
+    <button class="sel-btn" onclick="downloadSelected()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Download</button>
+    <button class="sel-btn red" onclick="deleteSelected()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Delete</button>
+    <button class="sel-btn" onclick="clearSelection()">â Clear</button>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="notif-stack" id="notifStack"></div>
+
+<script>
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   STATE
+ââââââââââââââââââââââââââââââââââââââââââ */
+let currentUser = null;
+let files = [];
+let folders = [];
+let trash = [];
+let selected = new Set();
+let ctxTarget = null;
+let currentFilter = 'all';
+let currentSort = 'name';
+let currentViewMode = 'grid';
+let currentNavView = 'all';
+let modalMode = '';
+let searchQuery = '';
+let currentFolder = null; // null = root
+
+const USERS = [
+  { user: 'admin', pass: 'drivepool123', name: 'Admin', avatar: 'A' },
+  { user: 'user', pass: 'user123', name: 'User', avatar: 'U' }
+];
+
+const DRIVE_ACCOUNTS = [
+  { name:'Primary Drive', email:'admin@gmail.com', used:45, total:100, color:'#4f8eff', emoji:'ðµ' },
+  { name:'Work Drive', email:'work@company.com', used:82, total:100, color:'#06d6a0', emoji:'ð¢' },
+  { name:'Backup Drive', email:'backup@gmail.com', used:60, total:100, color:'#ffa502', emoji:'ð ' },
+];
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   INIT
+ââââââââââââââââââââââââââââââââââââââââââ */
+window.onload = () => {
+  createParticles();
+  loadFromStorage();
+  document.getElementById('loginUser').addEventListener('keydown', e => e.key==='Enter' && tryLogin());
+  document.getElementById('loginPass').addEventListener('keydown', e => e.key==='Enter' && tryLogin());
+  document.getElementById('togglePw').onclick = () => {
+    const inp = document.getElementById('loginPass');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  };
+  document.addEventListener('click', () => {
+    document.getElementById('ctxMenu').style.display = 'none';
+  });
+  document.addEventListener('contextmenu', e => {
+    const card = e.target.closest('[data-id]');
+    if (!card) return;
+    e.preventDefault();
+    ctxTarget = card.dataset.id;
+    const m = document.getElementById('ctxMenu');
+    m.style.display = 'block';
+    const x = Math.min(e.clientX, window.innerWidth - 200);
+    const y = Math.min(e.clientY, window.innerHeight - 200);
+    m.style.left = x + 'px';
+    m.style.top = y + 'px';
+  });
+};
+
+function loadFromStorage() {
+  const s = localStorage.getItem('drivepoolFiles');
+  if (s) { files = JSON.parse(s); }
+  const f = localStorage.getItem('drivepoolFolders');
+  if (f) { folders = JSON.parse(f); }
+  const t = localStorage.getItem('drivepoolTrash');
+  if (t) { trash = JSON.parse(t); }
+  if (!folders.length) {
+    folders = [
+      { id:'f1', name:'Images', type:'folder', parent:null, created: new Date().toISOString() },
+      { id:'f2', name:'Videos', type:'folder', parent:null, created: new Date().toISOString() },
+      { id:'f3', name:'Documents', type:'folder', parent:null, created: new Date().toISOString() },
+      { id:'f4', name:'Audio', type:'folder', parent:null, created: new Date().toISOString() },
+      { id:'f5', name:'Archives', type:'folder', parent:null, created: new Date().toISOString() },
+    ];
+    saveAll();
+  }
+}
+
+function saveAll() {
+  localStorage.setItem('drivepoolFiles', JSON.stringify(files));
+  localStorage.setItem('drivepoolFolders', JSON.stringify(folders));
+  localStorage.setItem('drivepoolTrash', JSON.stringify(trash));
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   PARTICLES
+ââââââââââââââââââââââââââââââââââââââââââ */
+function createParticles() {
+  const c = document.getElementById('particles');
+  for(let i=0;i<25;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random()*100 + 'vw';
+    p.style.animationDuration = (12 + Math.random()*20) + 's';
+    p.style.animationDelay = (-Math.random()*30) + 's';
+    p.style.width = p.style.height = (1+Math.random()*3)+'px';
+    p.style.opacity = 0.2 + Math.random()*0.3;
+    c.appendChild(p);
+  }
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   AUTH
+ââââââââââââââââââââââââââââââââââââââââââ */
+function tryLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const found = USERS.find(x => x.user === u && x.pass === p);
+  if (!found) {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('loginBtn').style.animation = 'shake .3s ease';
+    setTimeout(() => document.getElementById('loginBtn').style.animation = '', 300);
+    return;
+  }
+  currentUser = found;
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('userNameDisp').textContent = found.name;
+  document.getElementById('userAvatar').textContent = found.avatar;
+  renderDriveAccounts();
+  renderFiles();
+  updateStats();
+  notify('Welcome back, ' + found.name + '!', 'ok');
+}
+document.getElementById('loginBtn').onclick = () => {
+  // ripple
+  const btn = document.getElementById('loginBtn');
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  r.style.width = r.style.height = '200px';
+  r.style.left = '50%'; r.style.top = '50%';
+  r.style.marginLeft = r.style.marginTop = '-100px';
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 500);
+  tryLogin();
+};
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').style.display = 'none';
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   DRIVE ACCOUNTS
+ââââââââââââââââââââââââââââââââââââââââââ */
+function renderDriveAccounts() {
+  const list = document.getElementById('accList');
+  list.innerHTML = DRIVE_ACCOUNTS.map(a =>
+    `<div class="acc-chip"><div class="acc-dot" style="background:${a.color}"></div>${a.name} Â· ${a.used}GB</div>`
+  ).join('');
+}
+
+function showDriveAccounts() {
+  const sec = document.getElementById('driveAccountsSection');
+  const cards = document.getElementById('driveCards');
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+  cards.innerHTML = DRIVE_ACCOUNTS.map(a =>
+    `<div class="drive-card">
+      <div class="drive-logo" style="background:${a.color}22">${a.emoji}</div>
+      <div class="drive-info">
+        <div class="drive-name">${a.name}</div>
+        <div class="drive-email">${a.email}</div>
+        <div class="drive-storage">${a.used} / ${a.total} GB used</div>
+      </div>
+      <div class="drive-status"></div>
+    </div>`
+  ).join('');
+  document.getElementById('topbarTitle').textContent = 'Connected Drives';
+}
+
+function addDriveAccount() {
+  notify('Google OAuth flow would open here to connect a new Drive', 'info');
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   CATEGORISE FILE
+ââââââââââââââââââââââââââââââââââââââââââ */
+function getCategory(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','svg','bmp','ico','tiff','heic'].includes(ext)) return 'images';
+  if (['mp4','mkv','avi','mov','wmv','flv','webm','m4v','mpeg'].includes(ext)) return 'videos';
+  if (['mp3','wav','flac','aac','ogg','m4a','wma','opus'].includes(ext)) return 'audio';
+  if (['zip','rar','7z','tar','gz','bz2','xz','cab'].includes(ext)) return 'archives';
+  if (['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','md','csv','rtf','odt','pages','numbers'].includes(ext)) return 'documents';
+  return 'documents';
+}
+
+function getCategoryEmoji(cat) {
+  return {images:'ð¼ï¸', videos:'ð¬', audio:'ðµ', archives:'ð¦', documents:'ð'}[cat] || 'ð';
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   UPLOAD
+ââââââââââââââââââââââââââââââââââââââââââ */
+function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
+function onDragLeave() { document.getElementById('uploadZone').classList.remove('drag'); }
+function onDrop(e) { e.preventDefault(); onDragLeave(); handleFiles(e.dataTransfer.files); }
+
+function handleFiles(fileList) {
+  if (!fileList.length) return;
+  const prog = document.getElementById('uploadProgress');
+  const items = document.getElementById('progressItems');
+  prog.style.display = 'block';
+  items.innerHTML = '';
+  Array.from(fileList).forEach((f, i) => {
+    const cat = getCategory(f.name);
+    const id = 'file-' + Date.now() + '-' + i;
+    const row = document.createElement('div');
+    row.className = 'up-item';
+    row.innerHTML = `<span class="up-name">${f.name}</span><div class="up-track"><div class="up-fill" id="uf-${id}" style="width:0%"></div></div><span class="up-pct" id="up-${id}">0%</span>`;
+    items.appendChild(row);
+    // Simulate progress
+    let pct = 0;
+    const timer = setInterval(() => {
+      pct += Math.random() * 25;
+      if (pct >= 100) {
+        pct = 100;
+        clearInterval(timer);
+        // Add file
+        files.push({
+          id, name: f.name, size: f.size, category: cat,
+          parent: null, created: new Date().toISOString(),
+          url: URL.createObjectURL(f),
+          isImage: ['images'].includes(cat)
+        });
+        saveAll();
+        updateStats();
+        renderFiles();
+        notify(`${f.name} uploaded to ${cat}`, 'ok');
+        // Hide progress after small delay
+        setTimeout(() => {
+          if (items.querySelectorAll('.up-fill[style*="100%"]').length === fileList.length) {
+            setTimeout(() => { prog.style.display='none'; items.innerHTML=''; }, 600);
+          }
+        }, 400);
+      }
+      document.getElementById('uf-'+id).style.width = pct+'%';
+      document.getElementById('up-'+id).textContent = Math.floor(pct)+'%';
+    }, 120 + i*40);
+  });
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   RENDER FILES
+ââââââââââââââââââââââââââââââââââââââââââ */
+function getVisibleItems() {
+  let items = [];
+  // Folders
+  const foldersInView = folders.filter(f => f.parent === currentFolder);
+  items = [...foldersInView.map(f => ({...f, _kind:'folder'}))];
+  // Files
+  let fl = files.filter(f => f.parent === currentFolder);
+  if (currentNavView !== 'all') fl = fl.filter(f => f.category === currentNavView);
+  if (currentFilter !== 'all') {
+    if (currentFilter === 'folder') { items = foldersInView.map(f=>({...f,_kind:'folder'})); return items; }
+    fl = fl.filter(f => f.category === currentFilter);
+    items = fl.map(f => ({...f, _kind:'file'}));
+    return items;
+  }
+  items = [...items, ...fl.map(f => ({...f, _kind:'file'}))];
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    items = items.filter(i => i.name.toLowerCase().includes(q));
+  }
+  // Sort
+  items.sort((a,b) => {
+    if (a._kind === 'folder' && b._kind !== 'folder') return -1;
+    if (a._kind !== 'folder' && b._kind === 'folder') return 1;
+    if (currentSort === 'name') return a.name.localeCompare(b.name);
+    if (currentSort === 'date') return new Date(b.created) - new Date(a.created);
+    if (currentSort === 'size') return (b.size||0) - (a.size||0);
+    if (currentSort === 'type') return (a.category||'').localeCompare(b.category||'');
+    return 0;
+  });
+  return items;
+}
+
+function renderFiles() {
+  const items = getVisibleItems();
+  const grid = document.getElementById('fileGrid');
+  const listV = document.getElementById('fileListView');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('totalBadge').textContent = files.length + folders.length;
+  document.getElementById('trashBadge').textContent = trash.length;
+  document.getElementById('fileCount').textContent = items.length + ' items';
+
+  if (!items.length) {
+    grid.innerHTML = ''; listV.innerHTML = '';
+    empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+
+  if (currentViewMode === 'grid') {
+    grid.style.display = 'grid';
+    listV.style.display = 'none';
+    grid.innerHTML = items.map((item, idx) => {
+      const isFolder = item._kind === 'folder';
+      const thumb = isFolder ? 'ð' : (item.isImage && item.url ? '' : getCategoryEmoji(item.category));
+      const thumbStyle = (!isFolder && item.isImage && item.url) ?
+        `background-image:url('${item.url}'); background-size:cover; background-position:center;` : '';
+      const sel = selected.has(item.id) ? 'border-color:var(--accent); background:rgba(79,142,255,.08);' : '';
+      return `<div class="file-card" data-id="${item.id}" style="animation-delay:${idx*.03}s; ${sel}" onclick="handleItemClick(event,'${item.id}','${item._kind}')" oncontextmenu="ctxTarget='${item.id}'">
+        <div class="file-thumb ${item.isImage ? 'img-thumb' : ''}" style="${thumbStyle}">${thumb}</div>
+        <div class="file-name">${item.name}</div>
+        <div class="file-meta">${isFolder ? 'Folder' : formatSize(item.size||0)} Â· ${timeAgo(item.created)}</div>
+        <div class="file-actions">
+          <button class="fa-btn" onclick="event.stopPropagation(); downloadFile('${item.id}')" title="Download">â¬</button>
+          <button class="fa-btn" onclick="event.stopPropagation(); openRename('${item.id}')" title="Rename">â</button>
+          <button class="fa-btn" onclick="event.stopPropagation(); deleteItem('${item.id}')" title="Delete" style="color:var(--danger)">ð</button>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    grid.style.display = 'none';
+    listV.style.display = 'block';
+    listV.innerHTML = `<div style="display:flex; padding:0 14px; margin-bottom:4px; font-size:.7rem; color:var(--muted); font-weight:600; letter-spacing:.06em; text-transform:uppercase;">
+      <div style="width:38px; flex-shrink:0"></div>
+      <div style="flex:1; margin-left:14px">Name</div>
+      <div style="width:90px">Type</div>
+      <div style="width:80px">Size</div>
+      <div style="width:120px">Date</div>
+      <div style="width:60px"></div>
+    </div>` + items.map((item, idx) => {
+      const isFolder = item._kind === 'folder';
+      const ico = isFolder ? 'ð' : getCategoryEmoji(item.category);
+      const sel = selected.has(item.id) ? 'background:rgba(79,142,255,.08);' : '';
+      return `<div class="file-list-item" data-id="${item.id}" style="animation-delay:${idx*.02}s; ${sel}" onclick="handleItemClick(event,'${item.id}','${item._kind}')">
+        <div class="li-icon">${ico}</div>
+        <div class="li-name">${item.name}</div>
+        <div class="li-type">${isFolder ? 'Folder' : item.category}</div>
+        <div class="li-size">${isFolder ? 'â' : formatSize(item.size||0)}</div>
+        <div class="li-date">${new Date(item.created).toLocaleDateString()}</div>
+        <div class="li-actions">
+          <button class="fa-btn" onclick="event.stopPropagation(); downloadFile('${item.id}')" title="Download">â¬</button>
+          <button class="fa-btn" onclick="event.stopPropagation(); openRename('${item.id}')" title="Rename">â</button>
+          <button class="fa-btn" onclick="event.stopPropagation(); deleteItem('${item.id}')" title="Delete" style="color:var(--danger)">ð</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   ITEM CLICK (select / open folder)
+ââââââââââââââââââââââââââââââââââââââââââ */
+function handleItemClick(e, id, kind) {
+  if (e.shiftKey || e.ctrlKey || e.metaKey) {
+    if (selected.has(id)) selected.delete(id);
+    else selected.add(id);
+    updateSelBar();
+    renderFiles();
+    return;
+  }
+  if (kind === 'folder') {
+    openFolder(id); return;
+  }
+  // Single select toggle
+  if (selected.has(id)) { selected.clear(); }
+  else { selected.clear(); selected.add(id); }
+  updateSelBar();
+  renderFiles();
+}
+
+function openFolder(id) {
+  currentFolder = id;
+  const f = folders.find(x => x.id === id);
+  document.getElementById('bcSep').style.display = '';
+  document.getElementById('bcCurrent').style.display = '';
+  document.getElementById('bcCurrent').textContent = f ? f.name : id;
+  renderFiles();
+}
+
+function goRoot() {
+  currentFolder = null;
+  document.getElementById('bcSep').style.display = 'none';
+  document.getElementById('bcCurrent').style.display = 'none';
+  renderFiles();
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   STATS
+ââââââââââââââââââââââââââââââââââââââââââ */
+function updateStats() {
+  document.getElementById('sv-total').textContent = files.length;
+  document.getElementById('sv-img').textContent = files.filter(f => f.category==='images').length;
+  document.getElementById('sv-vid').textContent = files.filter(f => f.category==='videos').length;
+  document.getElementById('sv-doc').textContent = files.filter(f => f.category==='documents').length;
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   FOLDER CRUD
+ââââââââââââââââââââââââââââââââââââââââââ */
+function openNewFolder() {
+  modalMode = 'new-folder';
+  document.getElementById('modalTitle').textContent = 'New Folder';
+  document.getElementById('modalInput').value = '';
+  document.getElementById('modalInput').placeholder = 'Folder nameâ¦';
+  document.getElementById('modalOk').textContent = 'Create';
+  document.getElementById('modalOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('modalInput').focus(), 50);
+}
+
+function openRename(id) {
+  ctxTarget = id;
+  modalMode = 'rename';
+  const item = [...files, ...folders].find(x => x.id === id);
+  document.getElementById('modalTitle').textContent = 'Rename';
+  document.getElementById('modalInput').value = item ? item.name : '';
+  document.getElementById('modalOk').textContent = 'Rename';
+  document.getElementById('modalOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('modalInput').focus(), 50);
+}
+
+function modalConfirm() {
+  const val = document.getElementById('modalInput').value.trim();
+  if (!val) return;
+  if (modalMode === 'new-folder') {
+    folders.push({ id:'f'+Date.now(), name:val, type:'folder', parent:currentFolder, created:new Date().toISOString() });
+    saveAll(); renderFiles(); notify('Folder "'+val+'" created', 'ok');
+  } else if (modalMode === 'rename') {
+    const fi = files.find(x => x.id === ctxTarget);
+    const fo = folders.find(x => x.id === ctxTarget);
+    if (fi) fi.name = val;
+    if (fo) fo.name = val;
+    saveAll(); renderFiles(); notify('Renamed to "'+val+'"', 'ok');
+  }
+  closeModal();
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('modalOverlay').style.display === 'flex') modalConfirm();
+  if (e.key === 'Escape') closeModal();
+});
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   DELETE / TRASH
+ââââââââââââââââââââââââââââââââââââââââââ */
+function deleteItem(id) {
+  const fi = files.findIndex(x => x.id === id);
+  if (fi !== -1) { trash.push(...files.splice(fi,1)); }
+  const fo = folders.findIndex(x => x.id === id);
+  if (fo !== -1) { trash.push(...folders.splice(fo,1)); }
+  saveAll(); renderFiles(); updateStats();
+  notify('Moved to trash', 'info');
+}
+
+function showTrash() {
+  document.getElementById('topbarTitle').textContent = 'Trash';
+  const grid = document.getElementById('fileGrid');
+  const listV = document.getElementById('fileListView');
+  const empty = document.getElementById('emptyState');
+  grid.style.display = 'grid'; listV.style.display = 'none';
+  if (!trash.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = trash.map((item, idx) => {
+    const ico = item._kind==='folder' ? 'ð' : getCategoryEmoji(item.category);
+    return `<div class="file-card" style="opacity:.7; animation-delay:${idx*.03}s">
+      <div class="file-thumb">${ico}</div>
+      <div class="file-name">${item.name}</div>
+      <div class="file-meta">In Trash Â· ${timeAgo(item.created)}</div>
+      <div class="file-actions" style="opacity:1">
+        <button class="fa-btn" onclick="restoreItem('${item.id}')" title="Restore">â»</button>
+        <button class="fa-btn" style="color:var(--danger)" onclick="permDelete('${item.id}')" title="Delete forever">ð</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function restoreItem(id) {
+  const idx = trash.findIndex(x => x.id === id);
+  if (idx !== -1) {
+    const item = trash.splice(idx, 1)[0];
+    if (item.type === 'folder') folders.push(item); else files.push(item);
+    saveAll(); renderFiles(); updateStats(); showTrash();
+    notify('File restored', 'ok');
+  }
+}
+
+function permDelete(id) {
+  const idx = trash.findIndex(x => x.id === id);
+  if (idx !== -1) { trash.splice(idx,1); saveAll(); showTrash(); notify('Permanently deleted', 'err'); }
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   DOWNLOAD
+ââââââââââââââââââââââââââââââââââââââââââ */
+function downloadFile(id) {
+  const f = files.find(x => x.id === id);
+  if (!f) { notify('Cannot download folders', 'info'); return; }
+  if (f.url) {
+    const a = document.createElement('a');
+    a.href = f.url; a.download = f.name; a.click();
+    notify('Downloading ' + f.name, 'ok');
+  } else {
+    notify('Download simulated for ' + f.name, 'info');
+  }
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   CONTEXT MENU ACTIONS
+ââââââââââââââââââââââââââââââââââââââââââ */
+function ctxAction(action) {
+  document.getElementById('ctxMenu').style.display = 'none';
+  if (!ctxTarget) return;
+  if (action === 'delete') deleteItem(ctxTarget);
+  else if (action === 'rename') openRename(ctxTarget);
+  else if (action === 'download') downloadFile(ctxTarget);
+  else if (action === 'copy') notify('Copy to clipboard (simulated)', 'info');
+  else if (action === 'move') notify('Move dialog would open here', 'info');
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   SELECTION BAR
+ââââââââââââââââââââââââââââââââââââââââââ */
+function updateSelBar() {
+  const bar = document.getElementById('selBar');
+  document.getElementById('selCount').textContent = selected.size + ' selected';
+  if (selected.size > 0) bar.classList.add('show'); else bar.classList.remove('show');
+}
+
+function clearSelection() { selected.clear(); updateSelBar(); renderFiles(); }
+
+function downloadSelected() {
+  selected.forEach(id => downloadFile(id));
+  clearSelection();
+}
+
+function deleteSelected() {
+  selected.forEach(id => deleteItem(id));
+  clearSelection();
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   VIEWS & FILTERS
+ââââââââââââââââââââââââââââââââââââââââââ */
+function switchView(el, view) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  currentNavView = view;
+  document.getElementById('topbarTitle').textContent = el.textContent.trim().replace(/\d+/g,'').trim();
+  document.getElementById('filesTitle').textContent = el.textContent.trim().replace(/\d+/g,'').trim();
+  document.getElementById('driveAccountsSection').style.display = 'none';
+  currentFilter = 'all';
+  document.querySelectorAll('.type-chip').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.type-chip')[0].classList.add('active');
+  renderFiles();
+}
+
+function filterType(type, el) {
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = type;
+  renderFiles();
+}
+
+function setView(mode) {
+  currentViewMode = mode;
+  document.getElementById('vbGrid').classList.toggle('active', mode==='grid');
+  document.getElementById('vbList').classList.toggle('active', mode==='list');
+  renderFiles();
+}
+
+function sortFiles(by, el) {
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentSort = by;
+  renderFiles();
+}
+
+function doSearch() {
+  searchQuery = document.getElementById('searchInput').value;
+  renderFiles();
+}
+
+function cycleSortMenu() {
+  const sorts = ['name','date','size','type'];
+  const idx = sorts.indexOf(currentSort);
+  const next = sorts[(idx+1) % sorts.length];
+  sortFiles(next, document.getElementById('srt-'+next));
+  notify('Sorted by ' + next, 'info');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   NOTIFICATIONS
+ââââââââââââââââââââââââââââââââââââââââââ */
+function notify(msg, type='info') {
+  const stack = document.getElementById('notifStack');
+  const n = document.createElement('div');
+  n.className = `notif notif-${type}`;
+  n.innerHTML = `<div class="notif-dot"></div><span>${msg}</span>`;
+  stack.appendChild(n);
+  setTimeout(() => { n.classList.add('out'); setTimeout(() => n.remove(), 200); }, 3200);
+}
+
+/* ââââââââââââââââââââââââââââââââââââââââââ
+   UTILS
+ââââââââââââââââââââââââââââââââââââââââââ */
+function formatSize(b) {
+  if (!b) return 'â';
+  if (b < 1024) return b + 'B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + 'KB';
+  if (b < 1024**3) return (b/1024/1024).toFixed(1) + 'MB';
+  return (b/1024**3).toFixed(2) + 'GB';
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const d = (Date.now() - new Date(iso)) / 1000;
+  if (d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d/60) + 'm ago';
+  if (d < 86400) return Math.floor(d/3600) + 'h ago';
+  return Math.floor(d/86400) + 'd ago';
+}
+</script>
+</body>
+</html>
